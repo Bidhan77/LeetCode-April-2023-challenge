@@ -1,0 +1,91 @@
+class Solution {
+    public int[] sortItems(int n, int m, int[] grp, List<List<Integer>> beforeItems) {
+        int[] ans = new int[n];
+        
+        // Create data structures to store relationships between items and groups
+        Map<Integer, Map<Integer, Set<Integer>>> itemMap = new HashMap<>();
+        Map<Integer, Set<Integer>> grpMap = new HashMap<>();
+        
+        // Assign unique group IDs to items with no group
+        for (int i = 0; i < n; i++) {
+            if (grp[i] == -1) {
+                grp[i] = m++;
+            }
+        }
+        
+        // Initialize the maps for groups and items
+        for (int i = 0; i < m; i++) {
+            grpMap.put(i, new HashSet<>());
+            itemMap.put(i, new HashMap<>());
+        }
+        
+        // Initialize intra-group relationships
+        for (int i = 0; i < n; i++) {
+            itemMap.get(grp[i]).put(i, new HashSet<>());
+        }
+        
+        // Populate relationships between items based on beforeItems
+        for (int i = 0; i < beforeItems.size(); i++) {
+            for (int item : beforeItems.get(i)) {
+                if (grp[i] == grp[item]) {
+                    // Within the same group, add relationship to intra-group map
+                    itemMap.get(grp[i]).get(item).add(i);
+                } else {
+                    // Between different groups, add relationship to inter-group map
+                    grpMap.get(grp[item]).add(grp[i]);
+                }
+            }
+        }
+        
+        int j = 0;
+        // Perform topological sorting on groups and items within each group
+        for (int g : topSort(grpMap)) {
+            for (int item : topSort(itemMap.get(g))) {
+                ans[j++] = item;
+            }
+        }
+        
+        // Return the sorted items or an empty array if sorting is not possible
+        return j < ans.length ? new int[]{} : ans;
+    }
+
+    // Topological sorting function
+    private int[] topSort(Map<Integer, Set<Integer>> map) {
+        Map<Integer, Integer> indg = new HashMap<>();
+        
+        // Calculate in-degrees of nodes
+        for (Set<Integer> values : map.values()) {
+            for (int m : values) {
+                indg.merge(m, 1, Integer::sum);
+            }
+        }
+        
+        Queue<Integer> queue = new ArrayDeque<>();
+        
+        // Initialize the queue with nodes having in-degree 0
+        for (int key : map.keySet()) {
+            if (!indg.containsKey(key)) {
+                queue.offer(key);
+            }
+        }
+        
+        int j = 0;
+        int[] ans = new int[map.size()];
+        
+        // Perform topological sorting
+        while (!queue.isEmpty()) {
+            int cur = queue.poll();
+            ans[j++] = cur;
+            
+            // Update in-degrees and enqueue nodes with in-degree 0
+            for (int next : map.get(cur)) {
+                if (indg.merge(next, -1, Integer::sum) == 0) {
+                    queue.offer(next);
+                }
+            }
+        }
+        
+        // Return the sorted array or an empty array if sorting is not possible
+        return j == ans.length ? ans : new int[]{};
+    }
+}
